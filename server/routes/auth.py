@@ -1,0 +1,24 @@
+from flask import request, session, jsonify
+from . import auth_bp
+from models import db, User
+from schemas import UserSchema
+
+
+@auth_bp.route("/signup", methods=["POST"])
+def signup():
+    data = request.get_json() or {}
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return {"error": "User already exists"}, 422
+    
+    new_user = User(username=username)
+    new_user.password_hash = password
+    db.session.add(new_user)
+    db.session.commit()
+    # Signs the user in
+    session["user_id"] = new_user.id
+    user_data = UserSchema().dump(new_user)
+    return user_data, 201
