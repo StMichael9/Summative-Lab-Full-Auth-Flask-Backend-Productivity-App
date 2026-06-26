@@ -22,3 +22,15 @@ def signup():
     session["user_id"] = new_user.id
     user_data = UserSchema().dump(new_user)
     return user_data, 201
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json() or {}
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"error": "Invalid username or password"}, 401
+    if user:
+        pass
