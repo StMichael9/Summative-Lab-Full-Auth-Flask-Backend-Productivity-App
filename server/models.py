@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
 from sqlalchemy import CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
+
 from datetime import datetime
 
 db = SQLAlchemy()
