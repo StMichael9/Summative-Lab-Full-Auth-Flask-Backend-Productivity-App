@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
 from sqlalchemy import CheckConstraint
+from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 
 db = SQLAlchemy()
@@ -10,7 +11,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, unique=True, nullable=False)
-    password_hash = db.Column(db.String, nullable=False)
+    _password_hash = db.Column(db.String, nullable=False)
     transactions = db.relationship("Transactions", backref = 'user')
 
     @validates("username")
@@ -18,6 +19,17 @@ class User(db.Model):
         if not value or value.strip() == "":
             raise ValueError("Must enter username")
         return value.strip() # saves it cleanly without extra spaces
+    
+    @hybrid_property
+    def password_hash(self):
+        return self._password_hash
+
+    @password_hash.setter
+    def password_hash(self, password):
+        self._password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def authenticate(self, password):
+        return bcrypt.check_password_hash(self._password_hash, password)
 
 
 class Transactions(db.Model):
