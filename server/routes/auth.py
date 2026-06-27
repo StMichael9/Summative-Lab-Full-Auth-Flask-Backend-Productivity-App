@@ -1,7 +1,10 @@
-from flask import request, session, jsonify
-from . import auth_bp
+from flask import Blueprint, request, session
 from models import db, User
 from schemas import UserSchema
+
+auth_bp = Blueprint("auth_bp", __name__)
+
+
 
 
 @auth_bp.route("/signup", methods=["POST"])

@@ -2,8 +2,12 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
 from sqlalchemy import CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
-
 from datetime import datetime
+from flask_bcrypt import Bcrypt
+bcrypt = Bcrypt()
+
+
+
 
 db = SQLAlchemy()
 
@@ -13,7 +17,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, unique=True, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
-    transactions = db.relationship("Transactions", backref = 'user')
+    transactions = db.relationship("Transaction", backref = 'user')
 
     @validates("username")
     def validate_username(self, key, value):
@@ -33,7 +37,7 @@ class User(db.Model):
         return bcrypt.check_password_hash(self._password_hash, password)
 
 
-class Transactions(db.Model):
+class Transaction(db.Model):
     __tablename__ = 'transactions'
 
     id = db.Column(db.Integer, primary_key=True)
