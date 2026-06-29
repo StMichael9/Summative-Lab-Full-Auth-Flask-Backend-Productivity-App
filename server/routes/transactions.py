@@ -22,8 +22,12 @@ update_schema = UpdateTransactionSchema()
 def get_transactions():
     if "user_id" not in session:
         return {"error": "Unauthorized"}, 401
-    transactions = Transaction.query.filter_by(user_id=session["user_id"]).all()
-    return TransactionSchema(many=True).dump(transactions), 200
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int) 
+    query = Transaction.query.filter_by(user_id=session["user_id"])
+    transactions = query.paginate(page=page, per_page=limit, error_out=False)
+
+    return TransactionSchema(many=True).dump(transactions.items), 200
 
 @transactions_bp.route("", methods=["POST"])
 def create_transaction():
