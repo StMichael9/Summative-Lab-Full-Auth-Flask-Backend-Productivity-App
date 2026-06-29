@@ -9,6 +9,15 @@ class CreateTransactionSchema(Schema):
     category = fields.String(required=True, validate=validate.Length(min=1, error="Cannot be empty"))
     description = fields.String(required=False, allow_none=True)
 
+class UpdateTransactionSchema(CreateTransactionSchema):
+    class Meta:
+        # Automatically copies all fields from CreateTransactionSchema
+        # but strips away the "required=True" rule from them for PATCH requests.
+        partial = True       
+        
+create_schema = CreateTransactionSchema()
+update_schema = UpdateTransactionSchema()
+
 @transactions_bp.route("", methods=["GET"])
 def get_transactions():
     if "user_id" not in session:
@@ -26,7 +35,7 @@ def create_transaction():
         return {"error": "Missing JSON payload"}, 400
 
     try:
-        validated_data = CreateTransactionSchema().load(data)
+        validated_data = create_schema.load(data)
     except ValidationError as err:
         return {"errors": err.messages}, 400
 
@@ -54,11 +63,18 @@ def update_transaction(id):
     if transaction.user_id != session["user_id"]:
         return {"error": "Unauthorized"}, 401
 
-    data = request.get_json() or {}
+    data = request.get_json() 
+    if data is None:
+        return {"error": "Missing JSON payload"}, 400
+    
+    try:
+        validated_data = update_schema.load(data)
+    except ValidationError as err:
+        return {"errors": err.messages}, 400
 
     for field in ["amount", "category", "description"]:
-        if field in data:
-            setattr(transaction, field, data[field])
+        if field in validated_data:
+            setattr(transaction, field, validated_data[field])
 
     db.session.commit()
     return TransactionSchema().dump(transaction), 200
