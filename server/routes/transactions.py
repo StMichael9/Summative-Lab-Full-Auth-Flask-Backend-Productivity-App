@@ -1,8 +1,13 @@
 from flask import Blueprint, request, session
 from models import db, Transaction
 from schemas import TransactionSchema
-
+from marshmallow import Schema, fields, validate, ValidationError
 transactions_bp = Blueprint("transactions_bp", __name__)
+
+class CreateTransactionSchema(Schema):
+    amount = fields.Float(required=True, validate=validate.Range(min=0.01, error="Amount must be greater than zero."))
+    category = fields.String(required=True, validate=validate.Length(min=1, error="Cannot be empty"))
+    description = fields.String(required=False, allow_none=True)
 
 @transactions_bp.route("", methods=["GET"])
 def get_transactions():
@@ -15,13 +20,20 @@ def get_transactions():
 def create_transaction():
     if "user_id" not in session:
         return {"error": "Unauthorized"}, 401
+    
+    data = request.get_json()
+    if data is None:
+        return {"error": "Missing JSON payload"}, 400
 
-    data = request.get_json() or {}
+    try:
+        validated_data = CreateTransactionSchema().load(data)
+    except ValidationError as err:
+        return {"errors": err.messages}, 400
 
     new_transaction = Transaction(
-        amount=data["amount"],
-        category=data["category"],
-        description=data.get("description"),
+        amount=validated_data["amount"],
+        category=validated_data["category"],
+        description=validated_data.get("description"),
         user_id=session["user_id"]
     )
 
