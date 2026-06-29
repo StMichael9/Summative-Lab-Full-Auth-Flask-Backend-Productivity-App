@@ -72,9 +72,9 @@ def update_transaction(id):
     except ValidationError as err:
         return {"errors": err.messages}, 400
 
-    for field in ["amount", "category", "description"]:
-        if field in validated_data:
-            setattr(transaction, field, validated_data[field])
+    for field, value in validated_data.items():
+        setattr(transaction, field, value)
+
 
     db.session.commit()
     return TransactionSchema().dump(transaction), 200
