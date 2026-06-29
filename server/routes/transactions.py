@@ -2,6 +2,7 @@ from flask import Blueprint, request, session
 from models import db, Transaction
 from schemas import TransactionSchema
 from marshmallow import Schema, fields, validate, ValidationError
+
 transactions_bp = Blueprint("transactions_bp", __name__)
 
 class CreateTransactionSchema(Schema):
@@ -22,11 +23,37 @@ update_schema = UpdateTransactionSchema()
 def get_transactions():
     if "user_id" not in session:
         return {"error": "Unauthorized"}, 401
+    # Pagination
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int) 
+      
     query = Transaction.query.filter_by(user_id=session["user_id"])
-    transactions = query.paginate(page=page, per_page=limit, error_out=False)
+    
+    # Sorting
+    sort = request.args.get('sort', 'id')
+    order = request.args.get('order', 'asc')
+    if hasattr(Transaction, sort):
+        column = getattr(Transaction, sort)
+        if order == "desc":
+            query = query.order_by(column.desc())
+        else:
+            query = query.order_by(column.asc())
 
+    # Filtering
+    # Get all column names from the model
+    model_columns = Transaction.__table__.columns.keys()
+
+# Loop through every query parameter the user sent
+    for key, value in request.args.items():
+        # Skip pagination and sorting params
+        if key in ["page", "limit", "sort", "order"]:
+                continue
+
+        # If the key matches a column, apply a filter
+        if key in model_columns:
+            query = query.filter(getattr(Transaction, key) == value)
+
+    transactions = query.paginate(page=page, per_page=limit, error_out=False) 
     return TransactionSchema(many=True).dump(transactions.items), 200
 
 @transactions_bp.route("", methods=["POST"])
